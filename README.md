@@ -49,14 +49,40 @@ make server
 ```
 This command starts the SSH server.
 
-6. **Launching the SSH Client:**
+6. **Launching the SSH Client with a local docker container:**
 
 ```bash
-make client
+make proxy
 ```
-This command starts the SSH client.
+This command starts the SSH tunnel from a local docker container.
+It can be used if SSH is not installed locally.
 
-7. **Cleaning up:**
+7. **Launching the SSH Client from your machine directly**
+
+Add this to your *.bashrc*. You have to adjust some values like `workspace/docker-ssh-bridge/id_rsa` to where you did clone the current project
+
+```bash
+# Distant docker socket over ssh
+export SSH_DOCKER_SERVER_HOST=bbrodriguez.example.org
+export SSH_DOCKER_SERVER_PORT=21312
+export SSH_DOCKER_SERVER_USER=devuser
+
+# Expose distand dockerd socket locally with DOCKER_HOST
+client_ssh_docker_tunnel_host=localhost
+client_ssh_docker_tunnel_port=23750
+# ssh docker tunnel creation if not exist
+nc -z ${client_ssh_docker_tunnel_host} ${client_ssh_docker_tunnel_port}
+if [ $? -ne 0 ] ; then
+    # if private key exists use it directly
+    if [ -f workspace/docker-ssh-bridge/id_rsa ] ; then
+        ssh -i workspace/docker-ssh-bridge/id_rsa -NL ${client_ssh_docker_tunnel_host}:${client_ssh_docker_tunnel_port}:/var/run/docker.sock ${SSH_DOCKER_SERVER_USER}@${SSH_DOCKER_SERVER_HOST} -p ${SSH_DOCKER_SERVER_PORT} &
+    fi
+fi
+
+export DOCKER_HOST=tcp://${client_ssh_docker_tunnel_host}:${client_ssh_docker_tunnel_port}
+```
+
+8. **Cleaning up:**
 
 ```bash
 make clean

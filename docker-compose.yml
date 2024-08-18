@@ -1,55 +1,95 @@
 networks:
-  dockernet:
+  sshbridge:
    driver: bridge
 services:
-  ssh-docker-server:
+  ssh-bridge-server:
     image: ${IMAGE:-dbndev/ssh-bridge}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${SSH_PUBLIC_KEY:-./id_rsa.pub}:/home/devuser/.ssh/authorized_keys/id_rsa.pub
+      - ${SSH_PUBLIC_KEY:-./id_rsa.pub}:/home/devuser/.ssh/authorized_keys
+    #   - ${PWD}:${PWD}
+    # working_dir: ${PWD}
     ports:
       - 22022:22
+    container_name: ssh-bridge-server
+    environment:
+      SSH_PUBLIC_KEY: /home/devuser/.ssh/authorized_keys
     networks:
-      dockernet:
+      sshbridge:
         aliases:
         - proxy
+    entrypoint: |
+      bash -c '
+      set -eu
+      trap "echo Exited entrypoint with code $$?." EXIT
+      mkdir -p /var/run/sshd
+      echo Generating server HostKeys for sshd
+      ssh-keygen -A
+      echo Setting correct permission for directory /etc/ssh/
+      sudo chmod -R 755 /etc/ssh/
+      echo Starting sshd.
+      /usr/sbin/sshd -D &
+      until nc -z localhost 22 ; do
+        echo waitind sshd...
+        sleep 1
+      done
+      echo sshd started: listening at localhost:22
+      echo granting access to $${SSH_PUBLIC_KEY}
+      cat $${SSH_PUBLIC_KEY}
+      sudo chmod o+rw /var/run/docker.sock
+      while true ; do sleep 1000; done
+      '
 
-  ssh-docker-server-proxy:
+  ssh-bridge-proxy:
     image: ${IMAGE:-dbndev/ssh-bridge}
-    depends_on:
-      - ssh-docker-server
     ports:
       - 23750:23750
     volumes:
-      - ${SSH_PRIVATE_KEY:-./id_rsa}:/home/devuser/.ssh/authorized_keys/id_rsa}
+      - ${SSH_PRIVATE_KEY:-${PWD}/id_rsa}:/home/devuser/.ssh/id_rsa
     environment: 
       DOCKER_HOST: 0.0.0.0:23750
+      SSH_DOCKER_SERVER: ${SSH_DOCKER_SERVER:-ssh-bridge-server:22}
+      SSH_DOCKER_SERVER_HOST: ${SSH_DOCKER_SERVER_HOST:-ssh-bridge-server}
+      SSH_DOCKER_SERVER_PORT: ${SSH_DOCKER_SERVER_PORT:-22}
+      HOME: /home/devuser
     command: |
       bash -c '
-      bash -c "
-        while ! nc -z ssh_server ${SSH_SERVER_PORT:-22}; do sleep 1; done;
-        ssh -i ${SSH_PRIVATE_KEY:-/home/devuser/.ssh/authorized_keys/id_rsa} -N -L 23750:/var/run/docker.sock user1@ssh_server
-      "
-      ssh -NL $${DOCKER_HOST}:/var/run/docker.sock $${USER}@${SSH_DOCKER_SERVER:-ssh-docker-server}
-      #socat TCP-LISTEN:23750,fork,reuseaddr TCP:$${DOCKER_HOST} > /tmp/socat-ssh-docker-server-2375/0.log 2>&1 &
-      #sleep 1000
+      set -eu
+      trap "echo Exited entrypoint with code $$?." EXIT
+      # sudo chown -R $${USER}:$${USER} ~/.ssh
+      echo "ssh-keyscan -H $${SSH_DOCKER_SERVER_HOST} -p $${SSH_DOCKER_SERVER_PORT} >> ~/.ssh/known_hosts"
+      until nc -z $${SSH_DOCKER_SERVER_HOST} $${SSH_DOCKER_SERVER_PORT} 2>/dev/null ; do
+        echo waitind docker server host at $${SSH_DOCKER_SERVER_HOST}:$${SSH_DOCKER_SERVER_PORT}...
+        sleep 1
+      done
+      ssh-keyscan -H -p $${SSH_DOCKER_SERVER_PORT} $${SSH_DOCKER_SERVER_HOST} >> ~/.ssh/known_hosts
+      echo creating ssh docker tunnel
+      chmod 600 $${SSH_PRIVATE_KEY:-$${HOME}/.ssh/id_rsa}
+      echo "ssh -i $${SSH_PRIVATE_KEY:-$${HOME}/.ssh/id_rsa} -NL 0.0.0.0:23750:/var/run/docker.sock $${USER}@$${SSH_DOCKER_SERVER_HOST} -p $${SSH_DOCKER_SERVER_PORT} &"
+      ssh -i $${SSH_PRIVATE_KEY:-$${HOME}/.ssh/id_rsa} -NL 0.0.0.0:23750:/var/run/docker.sock $${USER}@$${SSH_DOCKER_SERVER_HOST} -p $${SSH_DOCKER_SERVER_PORT} &
+      until nc -z localhost 23750 2>/dev/null ; do
+        echo waitind ssh docker tunnel...
+        sleep 1
+      done
+      echo ssh docker tunnel up
+      while true ; do sleep 1000 ; done
       '
+    container_name: ssh-bridge-proxy
     networks:
-      dockernet:
+      sshbridge:
         aliases:
         - proxy
 
-  ssh-docker-consumer:
+  ssh-bridge-consumer:
     image: ${IMAGE:-dbndev/ssh-bridge}
-    depends_on:
-      - ssh-docker-server-proxy
     environment:
-      - DOCKER_HOST=ssh-docker-server-proxy:23750
+      - DOCKER_HOST=ssh-bridge-proxy:23750
     command: |
       bash -c "
       until docker version; do echo Waiting docker over client provider; done
       "
+    container_name: ssh-bridge-consumer
     networks:
-      dockernet:
+      sshbridge:
         aliases:
         - consumer

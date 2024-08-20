@@ -6,29 +6,45 @@ PWD = $(CURDIR)
 
 server: $(SSH_PUBLIC_KEY)
 	@echo Launching ssh server
-	@-docker compose rm -f -s ssh-bridge-server
-	@docker compose up ssh-bridge-server
+	@-docker compose rm -f -s server
+	@docker compose up -d server
+	@until nc -z localhost 22022 ; do echo waiting server ; sleep 1 ; done
+	@echo server is running.
+	@echo use "make server-logs" or "make server-logs-follow" to view server logs
 .PHONY: server
+
+server-logs:
+	@docker compose logs server
+.PHONY: server-logs
+
+server-logs-follow:
+	@docker compose logs --follow server
+.PHONY: server-logs-follow
 
 server-sh:
 	@echo Launching ssh server shell
-	@docker compose exec -it ssh-bridge-server bash
+	@docker compose exec -it server bash
 .PHONY: server-sh
 
-proxy: $(SSH_PRIVATE_KEY)
-	@echo Launching ssh proxy
-	@-docker compose rm -f -s ssh-bridge-proxy
-	@docker compose up ssh-bridge-proxy
-.PHONY: proxy
+server-rm:
+	@echo Removing ssh server container
+	@docker compose down- f -f -it server
+.PHONY: server-rm
 
-proxy-sh:
+docker-proxy: $(SSH_PRIVATE_KEY)
+	@echo Launching ssh proxy
+	@-docker compose rm -f -s docker-proxy
+	@docker compose up docker-proxy
+.PHONY: docker-proxy
+
+docker-proxy-sh:
 	@echo Launching ssh proxy shell
-	@docker compose exec -it ssh-bridge-proxy bash
-.PHONY: proxy-sh
+	@docker compose exec -it docker-proxy bash
+.PHONY: docker-proxy-sh
 
 client:
 	@echo Launching ssh client
-	@-docker compose rm -f -s ssh-bridge-proxyd-client
+	@-docker compose rm -f -s docker-proxy-client
 	@docker compose up ssh-bridge-client
 .PHONY: client
 

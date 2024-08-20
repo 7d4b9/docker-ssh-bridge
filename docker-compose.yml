@@ -2,16 +2,18 @@ networks:
   sshbridge:
    driver: bridge
 services:
-  ssh-bridge-server:
+  server:
+    restart: unless-stopped
     image: ${IMAGE:-dbndev/ssh-bridge}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${SSH_PUBLIC_KEY:-./id_rsa.pub}:/home/devuser/.ssh/authorized_keys
-    #   - ${PWD}:${PWD}
-    # working_dir: ${PWD}
+      - /workspaces:/workspaces
+      - ${PWD}:${PWD}:cached
+    working_dir: ${PWD}
     ports:
       - 22022:22
-    container_name: ssh-bridge-server
+    container_name: server
     environment:
       SSH_PUBLIC_KEY: /home/devuser/.ssh/authorized_keys
     networks:
@@ -40,7 +42,7 @@ services:
       while true ; do sleep 1000; done
       '
 
-  ssh-bridge-proxy:
+  docker-proxy:
     image: ${IMAGE:-dbndev/ssh-bridge}
     ports:
       - 23750:23750
@@ -48,16 +50,14 @@ services:
       - ${SSH_PRIVATE_KEY:-${PWD}/id_rsa}:/home/devuser/.ssh/id_rsa
     environment: 
       DOCKER_HOST: 0.0.0.0:23750
-      SSH_DOCKER_SERVER: ${SSH_DOCKER_SERVER:-ssh-bridge-server:22}
-      SSH_DOCKER_SERVER_HOST: ${SSH_DOCKER_SERVER_HOST:-ssh-bridge-server}
+      SSH_DOCKER_SERVER: ${SSH_DOCKER_SERVER:-server:22}
+      SSH_DOCKER_SERVER_HOST: ${SSH_DOCKER_SERVER_HOST:-server}
       SSH_DOCKER_SERVER_PORT: ${SSH_DOCKER_SERVER_PORT:-22}
       HOME: /home/devuser
     command: |
       bash -c '
       set -eu
       trap "echo Exited entrypoint with code $$?." EXIT
-      # sudo chown -R $${USER}:$${USER} ~/.ssh
-      echo "ssh-keyscan -H $${SSH_DOCKER_SERVER_HOST} -p $${SSH_DOCKER_SERVER_PORT} >> ~/.ssh/known_hosts"
       until nc -z $${SSH_DOCKER_SERVER_HOST} $${SSH_DOCKER_SERVER_PORT} 2>/dev/null ; do
         echo waitind docker server host at $${SSH_DOCKER_SERVER_HOST}:$${SSH_DOCKER_SERVER_PORT}...
         sleep 1
@@ -74,21 +74,21 @@ services:
       echo ssh docker tunnel up
       while true ; do sleep 1000 ; done
       '
-    container_name: ssh-bridge-proxy
+    container_name: docker-proxy
     networks:
       sshbridge:
         aliases:
         - proxy
 
-  ssh-bridge-consumer:
+  consumer:
     image: ${IMAGE:-dbndev/ssh-bridge}
     environment:
-      - DOCKER_HOST=ssh-bridge-proxy:23750
+      - DOCKER_HOST=docker-proxy:23750
     command: |
       bash -c "
       until docker version; do echo Waiting docker over client provider; done
       "
-    container_name: ssh-bridge-consumer
+    container_name: consumer
     networks:
       sshbridge:
         aliases:

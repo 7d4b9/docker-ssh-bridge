@@ -7,13 +7,13 @@ services:
     image: ${IMAGE:-dbndev/ssh-bridge}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${SSH_PUBLIC_KEY:-./id_rsa.pub}:/home/devuser/.ssh/authorized_keys
+      - ./authorized_keys:/home/devuser/.ssh/authorized_keys
       - /workspaces:/workspaces
       - ${PWD}:${PWD}:cached
     working_dir: ${PWD}
     ports:
       - 22022:22
-    container_name: server
+    container_name: ssh-server
     environment:
       SSH_PUBLIC_KEY: /home/devuser/.ssh/authorized_keys
     networks:
@@ -30,6 +30,7 @@ services:
       echo Setting correct permission for directory /etc/ssh/
       sudo chmod -R 755 /etc/ssh/
       echo Starting sshd.
+      sudo sed -i "s/#PasswordAuthentication yes/PasswordAuthentication no/" /etc/ssh/sshd_config
       /usr/sbin/sshd -D &
       until nc -z localhost 22 ; do
         echo waitind sshd...

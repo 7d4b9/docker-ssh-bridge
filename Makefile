@@ -4,6 +4,9 @@ REPOSITORY ?= dbndev
 IMAGE := $(REPOSITORY)/ssh-bridge
 PWD = $(CURDIR)
 
+server-upgrade: build server-down server-up
+.PHONY: server-upgrade
+
 server-up: $(SSH_PUBLIC_KEY)
 	@echo Launching ssh server
 	@-docker compose rm -f -s server

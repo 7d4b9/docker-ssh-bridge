@@ -1,6 +1,6 @@
 networks:
   sshbridge:
-   driver: bridge
+    driver: bridge
 services:
   server:
     restart: unless-stopped
@@ -8,7 +8,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./authorized_keys:/home/devuser/.ssh/authorized_keys
-      - /workspaces:/workspaces
+      - ${DOCKER_SSH_BRIDGE_WORKSPACES:-/workspaces}:/workspaces:rw
+      - ${DOCKER_SSH_BRIDGE_GITHUB_ACTIONS_RUNNER_WORK_DIR:-/runner}:/runner:rw
       - ${PWD}:${PWD}:cached
     working_dir: ${PWD}
     ports:
@@ -19,7 +20,7 @@ services:
     networks:
       sshbridge:
         aliases:
-        - proxy
+          - proxy
     entrypoint: |
       bash -c '
       set -eu
@@ -39,6 +40,7 @@ services:
       echo sshd started: listening at localhost:22
       echo granting access to $${SSH_PUBLIC_KEY}
       cat $${SSH_PUBLIC_KEY}
+      chmod 600 $${SSH_PUBLIC_KEY}
       sudo chmod o+rw /var/run/docker.sock
       while true ; do sleep 1000; done
       '
@@ -49,7 +51,7 @@ services:
       - 23750:23750
     volumes:
       - ${SSH_PRIVATE_KEY:-${PWD}/id_rsa}:/home/devuser/.ssh/id_rsa
-    environment: 
+    environment:
       DOCKER_HOST: 0.0.0.0:23750
       SSH_DOCKER_SERVER: ${SSH_DOCKER_SERVER:-server:22}
       SSH_DOCKER_SERVER_HOST: ${SSH_DOCKER_SERVER_HOST:-server}
@@ -79,7 +81,7 @@ services:
     networks:
       sshbridge:
         aliases:
-        - proxy
+          - proxy
 
   consumer:
     image: ${IMAGE:-dbndev/ssh-bridge}
@@ -93,4 +95,4 @@ services:
     networks:
       sshbridge:
         aliases:
-        - consumer
+          - consumer

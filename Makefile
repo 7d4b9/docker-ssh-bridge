@@ -7,14 +7,24 @@ PWD = $(CURDIR)
 server-upgrade: build server-down server-up
 .PHONY: server-upgrade
 
+DOCKER_ADDRESS ?= localhost
+
 server-up: $(SSH_PUBLIC_KEY)
 	@echo Launching ssh server
 	@-docker compose rm -f -s server
 	@docker compose up -d server
-	@until nc -z localhost 22022 ; do echo waiting server ; sleep 1 ; done
+	@until nc -z $(DOCKER_ADDRESS) 22022 ; do echo waiting server ; sleep 1 ; done
 	@echo server is running.
 	@echo use "make server-logs" or "make server-logs-follow" to view server logs
 .PHONY: server-up
+
+server-up-github-codespaces:
+	@echo Launching ssh server in GitHub Codespaces
+	@DOCKER_SSH_BRIDGE_GITHUB_ACTIONS_RUNNER_WORK_DIR=/mnt/data/gha-runner \
+	DOCKER_ADDRESS=172.17.0.1 \
+	COMPOSE_PROJECT_NAME=ssh-docker-bridge \
+	  $(MAKE) server-up
+.PHONY: server-up-github-codespaces
 
 server-logs:
 	@docker compose logs server

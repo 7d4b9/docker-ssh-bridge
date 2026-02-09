@@ -12,6 +12,8 @@ services:
       - ${DOCKER_SSH_BRIDGE_GITHUB_ACTIONS_RUNNER_WORK_DIR:-/runner}:/runner:rw
       - ${PWD}:${PWD}:cached
     working_dir: ${PWD}
+    devices:
+      - /dev/kvm:/dev/kvm
     ports:
       - 22022:22
     container_name: ssh-server

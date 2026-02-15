@@ -10,6 +10,7 @@ services:
       - ./authorized_keys:/home/devuser/.ssh/authorized_keys
       - /workspaces:/workspaces
       - ${PWD}:${PWD}:cached
+      - /dev:/dev
     working_dir: ${PWD}
     ports:
       - 22022:22

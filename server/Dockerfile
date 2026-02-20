@@ -46,7 +46,7 @@ RUN install -m 0755 -d /etc/apt/keyrings \
 # Configuration des permissions correctes pour le dossier .ssh
 RUN mkdir /workspaces && \
     chmod 707 /workspaces
-    
+
 USER ${USER}
 ENV HOME=/home/${USER}
 
@@ -55,3 +55,20 @@ ENV HOME=/home/${USER}
 RUN mkdir ${HOME}/.ssh && \
     chmod 700 ${HOME}/.ssh
 
+ARG vscode_server_commit=none
+ENV VSCODE_SERVER_COMMIT=${vscode_server_commit}
+
+ARG vscode_server_arch=linux-x64
+ENV VSCODE_SERVER_ARCH=${vscode_server_arch}
+
+COPY install-vscode-server.sh /usr/local/bin/install-vscode-server.sh
+RUN sudo chmod +x /usr/local/bin/install-vscode-server.sh
+RUN install-vscode-server.sh
+
+COPY install-vscode-remote-containers-server.sh /usr/local/bin/install-vscode-remote-containers-server.sh
+RUN sudo chmod +x /usr/local/bin/install-vscode-remote-containers-server.sh
+RUN install-vscode-remote-containers-server.sh
+
+COPY entrypoint.sh /usr/local/bin/docker-ssh-entrypoint.sh
+RUN sudo chmod +x /usr/local/bin/docker-ssh-entrypoint.sh
+ENTRYPOINT [ "docker-ssh-entrypoint.sh" ]

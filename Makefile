@@ -4,6 +4,9 @@ REPOSITORY ?= dbndev
 IMAGE := $(REPOSITORY)/ssh-bridge
 PWD = $(CURDIR)
 
+VSCODE_SERVER_COMMIT ?= 072586267e68ece9a47aa43f8c108e0dcbf44622
+VSCODE_SERVER_ARCH ?= linux-x64
+
 server-upgrade: build server-down server-up
 .PHONY: server-upgrade
 
@@ -70,7 +73,11 @@ generate-ssh-keys: ssh-keys-rm
 
 build:
 	@echo Building image:
-	@docker build -t $(IMAGE) .
+	@docker build \
+	-f server/Dockerfile \
+	--build-arg vscode_server_commit=${VSCODE_SERVER_COMMIT} \
+	--build-arg vscode_server_arch=${VSCODE_SERVER_ARCH} \
+	-t $(IMAGE) server
 .PHONY: build
 
 push:
@@ -86,3 +93,32 @@ pull:
 ssh-keys-rm:
 	@rm -rf $(SSH_KEYS)
 .PHONY: ssh-keys-clean
+
+install-vscode: \
+ensure-vscode-store-volume \
+install-vscode-server \
+install-vscode-remote-containers-server
+.PHONY: install-vscode
+
+ensure-vscode-store-volume:
+	@docker volume inspect vscode-store > /dev/null 2>&1 || docker volume create vscode
+	@echo "✅ Ensured VSCode store volume exists."
+.PHONY: ensure-vscode-store-volume
+
+install-vscode-server:
+	@echo Installing vscode server - commit ${VSCODE_SERVER_COMMIT}
+	@docker compose exec \
+	  -e VSCODE_SERVER_COMMIT=${VSCODE_SERVER_COMMIT} \
+	  -e VSCODE_SERVER_ARCH=${VSCODE_SERVER_ARCH} \
+	  server \
+	  install-vscode-server.sh
+.PHONY: install-vscode-server
+
+install-vscode-remote-containers-server:
+	@echo Installing vscode remote containers server - commit ${VSCODE_SERVER_COMMIT} and timestamp ${VSCODE_SERVER_TS}
+	@docker compose exec \
+	  -e VSCODE_SERVER_COMMIT=${VSCODE_SERVER_COMMIT} \
+	  -e VSCODE_SERVER_ARCH=${VSCODE_SERVER_ARCH} \
+	  server \
+	  install-vscode-remote-containers-server.sh
+.PHONY: install-vscode-remote-containers-server

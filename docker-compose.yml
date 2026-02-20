@@ -11,6 +11,7 @@ services:
       - /workspaces:/workspaces
       - ${PWD}:${PWD}:cached
       - /dev:/dev
+      - vscode-store:/vscode
     working_dir: ${PWD}
     ports:
       - 22022:22
@@ -21,28 +22,6 @@ services:
       sshbridge:
         aliases:
         - proxy
-    entrypoint: |
-      bash -c '
-      set -eu
-      trap "echo Exited entrypoint with code $$?." EXIT
-      mkdir -p /var/run/sshd
-      echo Generating server HostKeys for sshd
-      ssh-keygen -A
-      echo Setting correct permission for directory /etc/ssh/
-      sudo chmod -R 755 /etc/ssh/
-      echo Starting sshd.
-      sudo sed -i "s/#PasswordAuthentication yes/PasswordAuthentication no/" /etc/ssh/sshd_config
-      /usr/sbin/sshd -D &
-      until nc -z localhost 22 ; do
-        echo waitind sshd...
-        sleep 1
-      done
-      echo sshd started: listening at localhost:22
-      echo granting access to $${SSH_PUBLIC_KEY}
-      cat $${SSH_PUBLIC_KEY}
-      sudo chmod o+rw /var/run/docker.sock
-      while true ; do sleep 1000; done
-      '
 
   docker-proxy:
     image: ${IMAGE:-dbndev/ssh-bridge}
@@ -95,3 +74,7 @@ services:
       sshbridge:
         aliases:
         - consumer
+volumes:
+  vscode-store:
+    external: true
+    name: vscode

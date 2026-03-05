@@ -11,7 +11,7 @@ COMMIT="${VSCODE_SERVER_COMMIT}"
 # ---------------------------
 
 # Host path used by DevContainers over SSH
-HOST_BASE="${HOME}/.vscode-remote-containers/bin/${COMMIT}"
+HOST_BASE="${HOME}/.vscode-server/bin/${COMMIT}"
 
 # Volume path used inside the docker-ssh-bridge container
 VOLUME_BASE="/vscode/vscode-server/bin/${ARCH}/${COMMIT}"
@@ -20,12 +20,19 @@ VOLUME_BASE="/vscode/vscode-server/bin/${ARCH}/${COMMIT}"
 # DOWNLOAD
 # ---------------------------
 
-TMP_TGZ="/tmp/vscode-server.tar.gz"
+TMP_TGZ="/tmp/vscode-server-${COMMIT}.tar.gz"
 
-echo "[*] Downloading VSCode server for commit ${COMMIT}"
-curl -fsSL \
-  "https://update.code.visualstudio.com/commit:${COMMIT}/server-${ARCH}/stable" \
-  -o "${TMP_TGZ}"
+if [ -f "${TMP_TGZ}" ]; then
+  echo "[*] Using cached archive ${TMP_TGZ}"
+else
+  echo "[*] Downloading archive..."
+  curl -fL --retry 5 --retry-delay 2 \
+    "https://update.code.visualstudio.com/commit:${COMMIT}/server-${ARCH}/stable" \
+    -o "${TMP_TGZ}"
+
+  echo "[*] Verifying archive..."
+  tar -tzf "${TMP_TGZ}" >/dev/null
+fi
 
 # ---------------------------
 # INSTALL INTO HOST_BASE

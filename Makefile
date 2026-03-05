@@ -2,12 +2,11 @@ export
 
 REPOSITORY ?= dbndev
 IMAGE := $(REPOSITORY)/ssh-bridge
+VSCODE_SERVER_ARCH ?= linux-x64
+VSCODE_SERVER_COMMIT ?= 0870c2a0c7c0564e7631bfed2675573a94ba4455
 PWD = $(CURDIR)
 
-VSCODE_SERVER_COMMIT ?= 072586267e68ece9a47aa43f8c108e0dcbf44622
-VSCODE_SERVER_ARCH ?= linux-x64
-
-server-upgrade: build server-down server-up
+server-upgrade: build server-down server-up ensure-vscode-server-commit
 .PHONY: server-upgrade
 
 server-up: $(SSH_PUBLIC_KEY)
@@ -75,8 +74,6 @@ build:
 	@echo Building image:
 	@docker build \
 	-f server/Dockerfile \
-	--build-arg vscode_server_commit=${VSCODE_SERVER_COMMIT} \
-	--build-arg vscode_server_arch=${VSCODE_SERVER_ARCH} \
 	-t $(IMAGE) server
 .PHONY: build
 
@@ -92,33 +89,13 @@ pull:
 
 ssh-keys-rm:
 	@rm -rf $(SSH_KEYS)
-.PHONY: ssh-keys-clean
+.PHONY: ssh-keys-rm
 
-install-vscode: \
-ensure-vscode-store-volume \
-install-vscode-server \
-install-vscode-remote-containers-server
-.PHONY: install-vscode
-
-ensure-vscode-store-volume:
-	@docker volume inspect vscode-store > /dev/null 2>&1 || docker volume create vscode
-	@echo "✅ Ensured VSCode store volume exists."
-.PHONY: ensure-vscode-store-volume
-
-install-vscode-server:
-	@echo Installing vscode server - commit ${VSCODE_SERVER_COMMIT}
-	@docker compose exec \
-	  -e VSCODE_SERVER_COMMIT=${VSCODE_SERVER_COMMIT} \
-	  -e VSCODE_SERVER_ARCH=${VSCODE_SERVER_ARCH} \
-	  server \
-	  install-vscode-server.sh
-.PHONY: install-vscode-server
-
-install-vscode-remote-containers-server:
-	@echo Installing vscode remote containers server - commit ${VSCODE_SERVER_COMMIT} and timestamp ${VSCODE_SERVER_TS}
-	@docker compose exec \
-	  -e VSCODE_SERVER_COMMIT=${VSCODE_SERVER_COMMIT} \
-	  -e VSCODE_SERVER_ARCH=${VSCODE_SERVER_ARCH} \
-	  server \
-	  install-vscode-remote-containers-server.sh
-.PHONY: install-vscode-remote-containers-server
+ensure-vscode-server-commit:
+	@echo "Ensuring VSCode servers are installed"
+	@docker exec \
+	  -e VSCODE_SERVER_COMMIT \
+	  -e VSCODE_SERVER_ARCH \
+	  ssh-server \
+	  /usr/local/bin/ensure-vscode-servers.sh
+.PHONY: ensure-vscode-server-commit

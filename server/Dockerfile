@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     procps \
     socat \
     sudo \
+    tree \
     unzip \
     vim \
     && rm -rf /var/lib/apt/lists/*
@@ -50,24 +51,19 @@ RUN mkdir /workspaces && \
 USER ${USER}
 ENV HOME=/home/${USER}
 
-
 # Configuration des permissions correctes pour le dossier .ssh
 RUN mkdir ${HOME}/.ssh && \
     chmod 700 ${HOME}/.ssh
 
-ARG vscode_server_commit=none
-ENV VSCODE_SERVER_COMMIT=${vscode_server_commit}
-
-ARG vscode_server_arch=linux-x64
-ENV VSCODE_SERVER_ARCH=${vscode_server_arch}
-
 COPY install-vscode-server.sh /usr/local/bin/install-vscode-server.sh
 RUN sudo chmod +x /usr/local/bin/install-vscode-server.sh
-RUN install-vscode-server.sh
+# Installed at runtime from entrypoint so the /vscode volume is mounted
 
 COPY install-vscode-remote-containers-server.sh /usr/local/bin/install-vscode-remote-containers-server.sh
+COPY ensure-vscode-servers.sh /usr/local/bin/ensure-vscode-servers.sh
 RUN sudo chmod +x /usr/local/bin/install-vscode-remote-containers-server.sh
-RUN install-vscode-remote-containers-server.sh
+RUN sudo chmod +x /usr/local/bin/ensure-vscode-servers.sh
+# Installed at runtime from entrypoint so the /vscode volume is mounted
 
 COPY entrypoint.sh /usr/local/bin/docker-ssh-entrypoint.sh
 RUN sudo chmod +x /usr/local/bin/docker-ssh-entrypoint.sh

@@ -36,6 +36,7 @@ echo granting access to ${SSH_PUBLIC_KEY}
 cat ${SSH_PUBLIC_KEY}
 
 sudo chmod o+rw /var/run/docker.sock
+/usr/local/bin/ensure-vscode-servers.sh "${VSCODE_SERVER_COMMIT:-}" "${VSCODE_SERVER_ARCH:-linux-x64}"
 
 if [ $# -eq 0 ]; then
   echo "[entrypoint] No command passed, entering sleep infinity to keep container alive"

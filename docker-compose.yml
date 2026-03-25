@@ -15,6 +15,7 @@ services:
     working_dir: ${PWD}
     ports:
       - 22022:22
+      - 23750:2375
     container_name: ssh-server
     environment:
       SSH_PUBLIC_KEY: /home/devuser/.ssh/authorized_keys

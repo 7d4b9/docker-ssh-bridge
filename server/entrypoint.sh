@@ -38,6 +38,9 @@ cat ${SSH_PUBLIC_KEY}
 sudo chmod o+rw /var/run/docker.sock
 /usr/local/bin/ensure-vscode-servers.sh "${VSCODE_SERVER_COMMIT:-}" "${VSCODE_SERVER_ARCH:-linux-x64}"
 
+socat TCP-LISTEN:2375,fork UNIX-CONNECT:/var/run/docker.sock &
+bg_pids+=($!)
+
 if [ $# -eq 0 ]; then
   echo "[entrypoint] No command passed, entering sleep infinity to keep container alive"
   wait ${bg_pids[@]}

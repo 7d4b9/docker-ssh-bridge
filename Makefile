@@ -3,7 +3,10 @@ export
 REPOSITORY ?= dbndev
 IMAGE := $(REPOSITORY)/ssh-bridge
 VSCODE_SERVER_ARCH ?= linux-x64
-VSCODE_SERVER_COMMIT ?= 0870c2a0c7c0564e7631bfed2675573a94ba4455
+
+# Use Release https://github.com/microsoft/vscode/release
+VSCODE_SERVER_COMMIT ?= 41dd792b5e652393e7787322889ed5fdc58bd75b # v1.115.0
+
 PWD = $(CURDIR)
 
 server-upgrade: build server-down server-up ensure-vscode-server-commit

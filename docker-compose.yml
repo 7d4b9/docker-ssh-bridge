@@ -19,7 +19,7 @@ services:
     container_name: ssh-server
     environment:
       SSH_PUBLIC_KEY: /home/devuser/.ssh/authorized_keys
-      VSCODE_SERVER_COMMIT: ${VSCODE_SERVER_COMMIT:-0870c2a0c7c0564e7631bfed2675573a94ba4455}
+      VSCODE_SERVER_COMMIT: ${VSCODE_SERVER_COMMIT}
       VSCODE_SERVER_ARCH: ${VSCODE_SERVER_ARCH:-linux-x64}
     networks:
       sshbridge:

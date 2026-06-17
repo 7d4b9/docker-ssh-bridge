@@ -9,7 +9,8 @@ COMMIT="${VSCODE_SERVER_COMMIT}"
 
 TMP_TGZ="/tmp/vscode-server-${COMMIT}.tar.gz"
 
-SERVER_BASE="${HOME}/.vscode-server/cli/servers/Stable-${COMMIT}"
+# After VSCode v1.124
+SERVER_BASE="${HOME}/.vscode-server/cli/servers/Stable-${COMMIT}/server"
 
 if [ -f "${TMP_TGZ}" ]; then
   echo "[*] Using cached archive ${TMP_TGZ}"
@@ -23,7 +24,7 @@ else
   tar -tzf "${TMP_TGZ}" >/dev/null
 fi
 
-echo "[*] Installing VS Code Remote‑SSH server for commit ${COMMIT}"
+echo "[*] Installing VS Code Remote-SSH server for commit ${COMMIT}"
 echo "[*] Target directory: ${SERVER_BASE}"
 
 if [ -x "${SERVER_BASE}/server/bin/remote-cli/node" ]; then

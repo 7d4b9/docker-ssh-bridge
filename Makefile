@@ -96,7 +96,7 @@ ensure-vscode-server-commit:
 	  -e VSCODE_SERVER_COMMIT \
 	  -e VSCODE_SERVER_ARCH \
 	  ssh-server \
-	  /usr/local/bin/ensure-vscode-servers.sh
+	  docker-ssh-bridge-ensure-vscode-servers.sh
 .PHONY: ensure-vscode-server-commit
 
 ensure-vscode-store-volume:

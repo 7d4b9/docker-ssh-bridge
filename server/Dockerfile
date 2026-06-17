@@ -57,16 +57,17 @@ ENV HOME=/home/${USER}
 RUN mkdir ${HOME}/.ssh && \
     chmod 700 ${HOME}/.ssh
 
-COPY install-vscode-server.sh /usr/local/bin/install-vscode-server.sh
-RUN sudo chmod +x /usr/local/bin/install-vscode-server.sh
-# Installed at runtime from entrypoint so the /vscode volume is mounted
+COPY container/ensure-vscode-servers.sh /usr/local/bin/docker-ssh-bridge-ensure-vscode-servers.sh
+COPY container/entrypoint.sh            /usr/local/bin/docker-ssh-bridge-entrypoint.sh
+COPY container/install.sh               /usr/local/bin/docker-ssh-bridge-install.sh
+COPY container/run.sh                   /usr/local/bin/docker-ssh-bridge-run.sh
+COPY container/healthcheck.sh           /usr/local/bin/docker-ssh-bridge-healthcheck.sh
 
-COPY install-vscode-remote-containers-server.sh /usr/local/bin/install-vscode-remote-containers-server.sh
-COPY ensure-vscode-servers.sh /usr/local/bin/ensure-vscode-servers.sh
-RUN sudo chmod +x /usr/local/bin/install-vscode-remote-containers-server.sh
-RUN sudo chmod +x /usr/local/bin/ensure-vscode-servers.sh
-# Installed at runtime from entrypoint so the /vscode volume is mounted
+# called from entrypoint so the /vscode volume is mounted
+COPY container/vscode-server-install.sh /usr/local/bin/docker-ssh-bridge-vscode-server-install.sh
+# called from entrypoint so the /vscode volume is mounted
+COPY container/vscode-remote-containers-server-install.sh   /usr/local/bin/docker-ssh-bridge-vscode-remote-containers-server-install.sh
 
-COPY entrypoint.sh /usr/local/bin/docker-ssh-entrypoint.sh
-RUN sudo chmod +x /usr/local/bin/docker-ssh-entrypoint.sh
-ENTRYPOINT [ "docker-ssh-entrypoint.sh" ]
+ENTRYPOINT [ "tini", "--", "docker-ssh-bridge-entrypoint.sh" ]
+CMD [ "docker-ssh-bridge-run.sh" ]
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 CMD [ "docker-ssh-bridge-healthcheck.sh" ]

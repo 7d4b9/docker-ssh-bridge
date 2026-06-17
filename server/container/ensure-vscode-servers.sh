@@ -5,6 +5,8 @@ set -euo pipefail
 trap "echo Exited entrypoint with code $?." EXIT
 echo "Ensuring VSCode servers are installed"
 
+export VSCODE_SERVER_COMMIT=${VSCODE_SERVER_COMMIT:-latest}
+
 if [ "${VSCODE_SERVER_COMMIT}" = "latest" ]; then
   TAG=$(curl -s https://api.github.com/repos/microsoft/vscode/releases/latest \
     | jq -r .tag_name)
@@ -23,5 +25,6 @@ fi
 
 echo "Using VSCode commit ${COMMIT}"
 
-/usr/local/bin/install-vscode-server.sh
-/usr/local/bin/install-vscode-remote-containers-server.sh
+docker-ssh-bridge-vscode-server-install.sh
+
+docker-ssh-bridge-vscode-remote-containers-server-install.sh

@@ -1,6 +1,6 @@
 networks:
   sshbridge:
-   driver: bridge
+    driver: bridge
 services:
   server:
     restart: unless-stopped
@@ -19,12 +19,12 @@ services:
     container_name: ssh-server
     environment:
       SSH_PUBLIC_KEY: /home/devuser/.ssh/authorized_keys
-      VSCODE_SERVER_COMMIT: ${VSCODE_SERVER_COMMIT:-latest}
-      VSCODE_SERVER_ARCH: ${VSCODE_SERVER_ARCH:-linux-x64}
+      VSCODE_SERVER_COMMIT: ${VSCODE_SERVER_COMMIT:-}
+      VSCODE_SERVER_ARCH: ${VSCODE_SERVER_ARCH}
     networks:
       sshbridge:
         aliases:
-        - proxy
+          - proxy
 
   docker-proxy:
     image: ${IMAGE:-dbndev/ssh-bridge}
@@ -32,7 +32,7 @@ services:
       - 23750:23750
     volumes:
       - ${SSH_PRIVATE_KEY:-${PWD}/id_rsa}:/home/devuser/.ssh/id_rsa
-    environment: 
+    environment:
       DOCKER_HOST: 0.0.0.0:23750
       SSH_DOCKER_SERVER: ${SSH_DOCKER_SERVER:-server:22}
       SSH_DOCKER_SERVER_HOST: ${SSH_DOCKER_SERVER_HOST:-server}
@@ -62,7 +62,7 @@ services:
     networks:
       sshbridge:
         aliases:
-        - proxy
+          - proxy
 
   consumer:
     image: ${IMAGE:-dbndev/ssh-bridge}
@@ -76,8 +76,8 @@ services:
     networks:
       sshbridge:
         aliases:
-        - consumer
+          - consumer
 volumes:
   vscode-store:
     external: true
-    name: vscode
+    name: vscode-store

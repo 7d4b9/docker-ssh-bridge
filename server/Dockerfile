@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     procps \
     socat \
     sudo \
+    tini \
     tree \
     unzip \
     vim \

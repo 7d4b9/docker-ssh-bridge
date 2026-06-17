@@ -98,3 +98,8 @@ ensure-vscode-server-commit:
 	  ssh-server \
 	  /usr/local/bin/ensure-vscode-servers.sh
 .PHONY: ensure-vscode-server-commit
+
+ensure-vscode-store-volume:
+	@docker volume inspect vscode-store > /dev/null 2>&1 || docker volume create vscode-store
+	@echo "✅ Ensured VSCode store volume exists."
+.PHONY: ensure-vscode-store-volume

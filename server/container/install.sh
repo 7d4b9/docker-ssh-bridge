@@ -15,3 +15,35 @@ cat ${SSH_PUBLIC_KEY}
 
 docker-ssh-bridge-ensure-vscode-servers.sh
 
+generate_ssh_env() {
+    local ssh_env="/home/devuser/.ssh/environment"
+    local sshd_env_conf="/etc/ssh/sshd_config.d/99-devuser-environment.conf"
+
+    mkdir -p /home/devuser/.ssh
+    chown devuser:devuser /home/devuser/.ssh
+    chmod 700 /home/devuser/.ssh
+
+    {
+        echo "VEGITO_DOCKER_REGISTRIES=${VEGITO_DOCKER_REGISTRIES:-}"
+        echo "VEGITO_DOCKERHUB_PAT=${VEGITO_DOCKERHUB_PAT:-}"
+        echo "VEGITO_DOCKER_REGISTRY_MODE=${VEGITO_DOCKER_REGISTRY_MODE:-}"
+        echo "VEGITO_STRIPE_DEBUG_KEY=${VEGITO_STRIPE_DEBUG_KEY:-}"
+        echo "VEGITO_PROJECT_USER=${VEGITO_PROJECT_USER:-}"
+        echo "VEGITO_DOCKERHUB_USERNAME=${VEGITO_DOCKERHUB_USERNAME:-}"
+        echo "VSCODE_SERVER_ARCH=${VSCODE_SERVER_ARCH:-}"
+        echo "VSCODE_SERVER_COMMIT=${VSCODE_SERVER_COMMIT:-}"
+    } > "${ssh_env}"
+
+    chown devuser:devuser "${ssh_env}"
+    chmod 600 "${ssh_env}"
+
+    {
+        echo "PermitUserEnvironment yes"
+    } | sudo tee "${sshd_env_conf}"
+
+    sudo chmod 644 "${sshd_env_conf}"
+
+    echo "Generated SSH environment at ${ssh_env}"
+}
+
+generate_ssh_env

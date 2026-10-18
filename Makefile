@@ -35,28 +35,6 @@ server-down:
 	@docker compose down server
 .PHONY: server-down
 
-docker-proxy: $(SSH_PRIVATE_KEY)
-	@echo Launching ssh proxy
-	@-docker compose rm -f -s docker-proxy
-	@docker compose up docker-proxy
-.PHONY: docker-proxy
-
-docker-proxy-sh:
-	@echo Launching ssh proxy shell
-	@docker compose exec -it docker-proxy bash
-.PHONY: docker-proxy-sh
-
-client:
-	@echo Launching ssh client
-	@-docker compose rm -f -s docker-proxy-client
-	@docker compose up consumer
-.PHONY: client
-
-client-sh:
-	@echo Launching ssh client shell
-	@docker compose exec -it consumer bash
-.PHONY: client-sh
-
 SSH_PRIVATE_KEY ?= $(CURDIR)/id_rsa
 SSH_PUBLIC_KEY ?= $(CURDIR)/id_rsa.pub
 

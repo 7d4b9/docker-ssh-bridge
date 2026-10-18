@@ -38,62 +38,11 @@ services:
       VEGITO_STRIPE_PROD_KEY: ${VEGITO_STRIPE_PROD_KEY}
       VEGITO_STRIPE_WEBHOOK_SECRET: ${VEGITO_STRIPE_WEBHOOK_SECRET}
 
-    networks:
-      sshbridge:
-        aliases:
-          - proxy
+      VEGITO_DOCKER_BUILDX_ARM_BUILDER_ENDPOINT: ${VEGITO_DOCKER_BUILDX_ARM_BUILDER_ENDPOINT}
 
-  docker-proxy:
-    image: ${IMAGE:-dbndev/ssh-bridge}
-    ports:
-      - 23750:23750
-    volumes:
-      - ${SSH_PRIVATE_KEY:-${PWD}/id_rsa}:/home/debian/.ssh/id_rsa
-    environment:
-      DOCKER_HOST: 0.0.0.0:23750
-      SSH_DOCKER_SERVER: ${SSH_DOCKER_SERVER:-server:22}
-      SSH_DOCKER_SERVER_HOST: ${SSH_DOCKER_SERVER_HOST:-server}
-      SSH_DOCKER_SERVER_PORT: ${SSH_DOCKER_SERVER_PORT:-22}
-      HOME: /home/debian
-    command: |
-      bash -c '
-      set -eu
-      trap "echo Exited entrypoint with code $$?." EXIT
-      until nc -z $${SSH_DOCKER_SERVER_HOST} $${SSH_DOCKER_SERVER_PORT} 2>/dev/null ; do
-        echo waitind docker server host at $${SSH_DOCKER_SERVER_HOST}:$${SSH_DOCKER_SERVER_PORT}...
-        sleep 1
-      done
-      ssh-keyscan -H -p $${SSH_DOCKER_SERVER_PORT} $${SSH_DOCKER_SERVER_HOST} >> ~/.ssh/known_hosts
-      echo creating ssh docker tunnel
-      chmod 600 $${SSH_PRIVATE_KEY:-$${HOME}/.ssh/id_rsa}
-      echo "ssh -i $${SSH_PRIVATE_KEY:-$${HOME}/.ssh/id_rsa} -NL 0.0.0.0:23750:/var/run/docker.sock $${USER}@$${SSH_DOCKER_SERVER_HOST} -p $${SSH_DOCKER_SERVER_PORT} &"
-      ssh -i $${SSH_PRIVATE_KEY:-$${HOME}/.ssh/id_rsa} -NL 0.0.0.0:23750:/var/run/docker.sock $${USER}@$${SSH_DOCKER_SERVER_HOST} -p $${SSH_DOCKER_SERVER_PORT} &
-      until nc -z localhost 23750 2>/dev/null ; do
-        echo waitind ssh docker tunnel...
-        sleep 1
-      done
-      echo ssh docker tunnel up
-      while true ; do sleep 1000 ; done
-      '
-    container_name: docker-proxy
-    networks:
-      sshbridge:
-        aliases:
-          - proxy
+    dns:
+      - ${VEGITO_DNS:-10.5.5.7}
 
-  consumer:
-    image: ${IMAGE:-dbndev/ssh-bridge}
-    environment:
-      - DOCKER_HOST=docker-proxy:23750
-    command: |
-      bash -c "
-      until docker version; do echo Waiting docker over client provider; done
-      "
-    container_name: consumer
-    networks:
-      sshbridge:
-        aliases:
-          - consumer
 volumes:
   vscode:
     external: true
